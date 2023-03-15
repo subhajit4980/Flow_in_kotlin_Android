@@ -42,7 +42,7 @@ class MainActivity : AppCompatActivity() {
 
  */
 //     Kotlin Flow Operators - Terminal + Map, Filter Buffer Operators
-        GlobalScope.launch (Dispatchers.Main){
+        GlobalScope.launch (Dispatchers.Main) {
             /*  ////////  Operators
             producer()
                 .onStart {
@@ -74,7 +74,7 @@ class MainActivity : AppCompatActivity() {
 
              */
             ////////////  Map
-    /*        producer()
+            /*        producer()
                 .map {
                 it*2
                 }
@@ -85,7 +85,7 @@ class MainActivity : AppCompatActivity() {
                     Log.d("SUBHAJIT :",it.toString())
                 }
      */
-      /*
+            /*
             getnote()
                 .map {
                     FormattedNote(it.isActive,it.title,it.desc)
@@ -97,6 +97,7 @@ class MainActivity : AppCompatActivity() {
                     Log.d("SUBHAJIT :",it.toString())
                 }
        */
+            /*
             /////////////  Buffer
 //            when producer is fast but consumer is slow
 //            then we used buffer to store a specifying items for certain time
@@ -111,13 +112,85 @@ class MainActivity : AppCompatActivity() {
             }
             Log.d("SUBHAJIT :",time.toString())
         }
+
+          */
+            /*
+            try {
+                producer()
+//                        context switching
+                    .flowOn(Dispatchers.IO)
+                    .collect {
+                        delay(1500)
+                        Log.d("SUBHAJIT :", " collector thread ${Thread.currentThread().name}")
+                    }
+            } catch (e: Exception) {
+                    Log.d("TAG",e.message.toString())
+            }
+
+             */
+//            val res=producer_Mutable_dharedflow()
+            val  res=stateflow()
+            delay(6000)
+            res.collect{
+                Log.d("TAG","item $it")
+            }
+        }
+//        GlobalScope.launch(Dispatchers.Main) {
+//            val res=producer_Mutable_dharedflow()
+//            delay(2500)
+//            res.collect{
+//                Log.d("TAG","item $it")
+//            }
+//        }
     }
-//    producer
-    private fun producer()= flow<Int> {
+//it's a hot stream which start which data are executed when multiple consumer are executes
+    private fun producer_Mutable_dharedflow(): Flow<Int> {
+//    replay shows previous numbers of items
+            val Mutable_dharedflow= MutableSharedFlow<Int>(2)
+            GlobalScope.launch {
+                val list= listOf(1,2,3,4,5,6,7,8,9,0)
+                list.forEach{
+                    Mutable_dharedflow.emit(it)
+                    delay(1000)
+                }
+            }
+        return Mutable_dharedflow
+    }
+//    State Flow maintains the last value or the latest value emitted in the flow.
+//    State Flow is also a shared flow but with single buffer to keep the conflated values in the flow.
+    private fun stateflow():Flow<Int>{
+            val mutableStateFlow= MutableStateFlow(10)
+        GlobalScope.launch {
+            delay(2000)
+            mutableStateFlow.emit(20)
+            delay(2000)
+            mutableStateFlow.emit(30)
+        }
+        return mutableStateFlow
+    }
+    //    producer
+   /* private fun producer()= flow<Int> {
         val list= listOf(1,2,3,4,5,6,7,8,9,0)
         list.forEach{
             delay(1000)
             emit(it)
+        }
+
+    */
+        fun producer():Flow<Int>{
+            return flow <Int>{
+                val list= listOf(1,2,3,4,5,6,7,8,9,0)
+                list.forEach{
+                    delay(1000)
+                    Log.d("TAG","Emitter Thread ${Thread.currentThread().name}")
+                    emit(it)
+                    throw Exception("Error in emitter")
+                }
+//  handle the exception of flow for this function
+            }.catch {
+                Log.d("TAG", "Emitter catch ${it.toString()}")
+                emit(-1)
+            }
         }
     }
 
@@ -131,6 +204,5 @@ class MainActivity : AppCompatActivity() {
         )
         return list.asFlow()
     }
-}
 data class Note(val id:Int,val isActive:Boolean,val title:String,val desc:String)
 data class FormattedNote(val isActive:Boolean,val title:String,val desc:String)
